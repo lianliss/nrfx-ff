@@ -68,6 +68,11 @@ contract NarfexFiatFactory is Ownable {
     function getFiatsQuantity() public view returns (uint) {
         return fiatsList.length;
     }
-    
+
+    /// @notice Returns all fiats in a list
+    /// @return Fiats addresses in array
+    function getFiats() public view returns (NarfexFiat[] memory) {
+        return fiatsList;
+    }
     
 }

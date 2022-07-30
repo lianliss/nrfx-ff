@@ -12,8 +12,8 @@ async function main() {
   const fiatContract = await ethers.getContractFactory("NarfexFiat");
 
   const fiat = await fiatContract.deploy(
-    "Russian Ruble Initial",
-    "NRUB",
+    "Russian Ruble on Narfex",
+    "RUB",
     factory.address
   );
   await fiat.deployed();

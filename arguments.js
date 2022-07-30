@@ -1,5 +1,5 @@
 module.exports = [
-	"Russian Ruble Initial",
-    "NRUB",
-    "0xd130280727E80d199438F6233DAa4dcDE80DecC1",
+	"Russian Ruble on Narfex",
+    "RUB",
+    "0xF9ceb479201054d2B301f9052A5fFBe47D652358",
 ];

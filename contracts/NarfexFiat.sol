@@ -326,4 +326,17 @@ contract NarfexFiat is Context, IBEP20 {
     function burnFrom(address account, uint256 amount) public onlyOwner {
         _burn(account, amount);
     }
+
+    /// @notice Returns data for user in one request
+    /// @param account Account address
+    /// @return Token Name
+    /// @return Token Symbol
+    /// @return Account balance
+    function getInfo(address account) public view returns (string memory, string memory, uint) {
+        return (
+            _name,
+            _symbol,
+            balanceOf(account)
+        );
+    }
 }
