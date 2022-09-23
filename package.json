@@ -20,6 +20,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "deployBSC": "npx hardhat run scripts/deploy.js --network bsc",
-    "deployTest": "npx hardhat run scripts/deploy.js --network test"
+    "deployTest": "npx hardhat run scripts/deploy.js --network test",
+    "deployRouter": "npx hardhat run scripts/deployRouter.js --network bsc"
   }
 }
