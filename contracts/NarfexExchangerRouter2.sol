@@ -173,7 +173,7 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
         Token memory B,
         ExchangeData memory exchange,
         address _refer
-    ) internal {
+    ) private {
         require(INarfexFiat(A.addr).balanceOf(_accountAddress) >= exchange.inAmount, "Not enough balance");
 
         /// Exchange tokens
@@ -195,7 +195,7 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
         ExchangeData memory exchange,
         address _refer,
         bool _isItSwapWithDEX
-    ) internal returns (uint usdtAmount) {
+    ) private returns (uint usdtAmount) {
         Token memory C = A.addr == exchange.commToken ? A : B;
 
         if (A.addr == address(USDT)) {
@@ -251,7 +251,7 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
         SwapData memory data,
         Token memory A,
         Token memory B
-        ) internal
+        ) private
     {
         uint transferInAmount;
         if (data.isExactOut) {
@@ -315,12 +315,13 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
     }
 
     function _swapFiatWithDEX(
-        address payable _account,
+        address payable _fromAccount,
+        address payable _toAccount,
         SwapData memory data,
         Token memory F, // Fiat
         Token memory C, // Coin
         bool isFromFiat
-        ) internal
+        ) private
     {
         /// USDT token data
         Token memory U = _assignTokenData(address(USDT), oracle.getTokenData(address(USDT), false));
@@ -343,8 +344,9 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
                 }
                 _processSwapData(data);
                 exchange = _getExchangeValues(F, U, data.inAmount, true);
+                require(exchange.inAmount <= data.inAmountMax, "Input amount is higher than maximum");
                 /// Swap Fiat with USDT
-                _swapFiatAndUSDT(_account, F, U, exchange, data.refer, true);
+                _swapFiatAndUSDT(_fromAccount, F, U, exchange, data.refer, true);
                 /// Transfer USDT from the Pool to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(U.addr, data.path[1]);
@@ -355,17 +357,18 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
                     /// Swap with BNB out
                     _swapDEX(data.amounts, data.path, address(this));
                     WBNB.withdraw(data.outAmount);
-                    _account.transfer(data.outAmount);
+                    _toAccount.transfer(data.outAmount);
                 } else {
                     /// Swap with coin out
-                    _swapDEX(data.amounts, data.path, _account);
+                    _swapDEX(data.amounts, data.path, _toAccount);
                 }
-                emit SwapDEX(_account, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
+                emit SwapDEX(_toAccount, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
             } else { /// COIN > DEX > USDT > FIAT!!
                 /// Calculate other amounts from the start amount data
                 exchange = _getExchangeValues(U, F, data.amount, true);
                 data.outAmount = exchange.inAmount;
                 _processSwapData(data);
+                require(data.inAmount <= data.inAmountMax, "Input amount is higher than maximum");
                 /// Transfer Coin from the account to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(C.addr, data.path[1]);
@@ -376,21 +379,21 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
                         assert(WBNB.transfer(firstPair, data.inAmount));
                         if (msg.value > data.inAmount) {
                             /// Return unused BNB
-                            _account.transfer(msg.value - data.inAmount);
+                            _fromAccount.transfer(msg.value - data.inAmount);
                         }
                     } else {
                         /// Send increased coin amount from the account to DEX
                         uint inAmountWithFee = C.transferFee > 0
                         ? data.inAmount * (PERCENT_PRECISION + C.transferFee) / PERCENT_PRECISION
                         : data.inAmount;
-                        SafeERC20.safeTransferFrom(IERC20(C.addr), _account, firstPair, inAmountWithFee);
+                        SafeERC20.safeTransferFrom(IERC20(C.addr), _fromAccount, firstPair, inAmountWithFee);
                     }
                 }
                 /// Swap and send USDT to the pool
                 _swapDEX(data.amounts, data.path, address(pool));
-                emit SwapDEX(_account, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
+                emit SwapDEX(_toAccount, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
                 /// Swap USDT and Fiat
-                _swapFiatAndUSDT(_account, U, F, exchange, data.refer, true);
+                _swapFiatAndUSDT(_toAccount, U, F, exchange, data.refer, true);
             }
         } else {
             /// If exact IN
@@ -399,8 +402,9 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
                 exchange = _getExchangeValues(F, U, data.amount, false);
                 data.inAmount = exchange.outAmount;
                 _processSwapData(data);
+                require(data.outAmount >= data.outAmountMin, "Output amount is lower than minimum");
                 /// Swap Fiat with USDT
-                _swapFiatAndUSDT(_account, F, U, exchange, data.refer, true);
+                _swapFiatAndUSDT(_fromAccount, F, U, exchange, data.refer, true);
                 /// Transfer USDT from the Pool to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(U.addr, data.path[1]);
@@ -412,12 +416,12 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
                     /// Swap with BNB transfer
                     _swapDEX(data.amounts, data.path, address(this));
                     WBNB.withdraw(data.outAmount);
-                    _account.transfer(data.outAmount);
+                    _toAccount.transfer(data.outAmount);
                 } else {
                     /// Swap with coin transfer
-                    _swapDEX(data.amounts, data.path, _account);
+                    _swapDEX(data.amounts, data.path, _toAccount);
                 }
-                emit SwapDEX(_account, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
+                emit SwapDEX(_toAccount, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
             } else { /// COIN!! > DEX > USDT > FIAT
                 /// Calculate other amounts from the start amount data
                 data.inAmount = data.amount;
@@ -427,6 +431,7 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
                 }
                 _processSwapData(data);
                 exchange = _getExchangeValues(U, F, data.outAmount, false);
+                require(exchange.outAmount >= data.outAmountMin, "Output amount is lower than minimum");
                 /// Transfer Coin from the account to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(C.addr, data.path[1]);
@@ -437,20 +442,25 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
                         assert(WBNB.transfer(firstPair, data.amount));
                     } else {
                         /// Coin transfer
-                        SafeERC20.safeTransferFrom(IERC20(C.addr), _account, firstPair, data.amount); /// Full amount
+                        SafeERC20.safeTransferFrom(IERC20(C.addr), _fromAccount, firstPair, data.amount); /// Full amount
                     }
                 }
                 /// Swap and send USDT to the pool
                 _swapDEX(data.amounts, data.path, address(pool));
-                emit SwapDEX(_account, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
+                emit SwapDEX(_toAccount, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
                 /// Swap USDT and Fiat
-                _swapFiatAndUSDT(_account, U, F, exchange, data.refer, true);
+                _swapFiatAndUSDT(_fromAccount, U, F, exchange, data.refer, true);
             }
         }
     }
 
-    function _swap(address payable _account, SwapData memory data) internal {
-        require(data.refer != _account, "Refer address can't be the sender's address");
+    function _swap(
+        address payable _fromAccount,
+        address payable _toAccount,
+        SwapData memory data
+        ) private
+    {
+        require(data.refer != _toAccount, "Refer address can't be the sender's address");
         require(data.path.length > 1, "Path length must be at least 2 addresses");
         uint lastIndex = data.path.length - 1;
 
@@ -468,24 +478,45 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
         if (A.isFiat && B.isFiat)
         { /// If swap between fiats
             ExchangeData memory exchange = _getExchangeValues(A, B, data.amount, data.isExactOut);
-            _swapFiats(_account, A, B, exchange, data.refer);
+            _swapFiats(_toAccount, A, B, exchange, data.refer);
             return;
         }
         if (!A.isFiat && !B.isFiat)
         { /// Swap on DEX only
-            _swapOnlyDEX(_account, data, A, B);
+            _swapOnlyDEX(_toAccount, data, A, B);
             return;
         }
         if ((A.isFiat && B.addr == address(USDT))
             || (B.isFiat && A.addr == address(USDT)))
         { /// If swap between fiat and USDT in the pool
             ExchangeData memory exchange = _getExchangeValues(A, B, data.amount, data.isExactOut);
-            _swapFiatAndUSDT(_account, A, B, exchange, data.refer, false);
+            _swapFiatAndUSDT(_toAccount, A, B, exchange, data.refer, false);
             return;
         }
 
         /// Swap with DEX and Fiats
         data.path = _getDEXSubPath(data.path, A.isFiat);
-        _swapFiatWithDEX(_account, data, A.isFiat ? A : B, A.isFiat ? B : A, A.isFiat);  
+        _swapFiatWithDEX(_fromAccount, _toAccount, data, A.isFiat ? A : B, A.isFiat ? B : A, A.isFiat);  
+    }
+
+    function swap(
+        address[] memory path,
+        bool isExactOut,
+        uint amount,
+        uint amountLimit,
+        uint deadline,
+        address refer) public payable ensure(deadline)
+    {
+        SwapData memory data;
+        data.path = path;
+        data.isExactOut = isExactOut;
+        data.amount = amount;
+        data.inAmount = isExactOut ? 0 : amount;
+        data.inAmountMax = isExactOut ? amountLimit : MAX_INT;
+        data.outAmount = isExactOut ? amount : 0;
+        data.outAmountMin = isExactOut ? amountLimit : 0;
+        data.refer = refer;
+
+        _swap(payable(msg.sender), payable(msg.sender), data);
     }
 }
