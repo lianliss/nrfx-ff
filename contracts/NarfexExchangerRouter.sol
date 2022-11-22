@@ -1,10 +1,18 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
-import "./IBEP20.sol";
-import "./Address.sol";
-import "./NarfexFiat.sol";
-import "./Ownable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface INarfexFiat is IERC20 {
+    function burnFrom(address _address, uint _amount) external;
+    function mintTo(address _address, uint _amount) external;
+}
+
+interface INarfexFiatFactory {
+    function owner() external view returns (address);
+}
 
 /// @title Narfex Exchanger Router
 /// @author Danil Sakhinov
@@ -61,11 +69,11 @@ contract NarfexExchangerRouter is Ownable {
         uint256 _fromAmount,
         uint256 _toAmount
         ) public onlyOwner {
-            NarfexFiat(_fromFiat).burnFrom(_fromAddress, _fromAmount);
-            NarfexFiat(_toFiat).mintTo(_fromAddress, _toAmount);
+            INarfexFiat(_fromFiat).burnFrom(_fromAddress, _fromAmount);
+            INarfexFiat(_toFiat).mintTo(_fromAddress, _toAmount);
         }
 
-    /// @notice Exchange fiat to fiat on the selected address
+    /// @notice Exchange token to fiat on the selected address
     /// @param _fromAddress Wallet address
     /// @param _fromToken Fiat to be burned
     /// @param _toFiat Fiat to be minted
@@ -79,10 +87,69 @@ contract NarfexExchangerRouter is Ownable {
         uint256 _toAmount
     ) public onlyOwner {
         if (_fromToken == _nrfx) {
-            IBEP20(_fromToken).transferFrom(_fromAddress, _exchangerWalletSecondary, _fromAmount);
+            IERC20(_fromToken).transferFrom(_fromAddress, _exchangerWalletSecondary, _fromAmount);
         } else {
-            IBEP20(_fromToken).transferFrom(_fromAddress, _exchangerWallet, _fromAmount);
+            IERC20(_fromToken).transferFrom(_fromAddress, _exchangerWallet, _fromAmount);
         }
-        NarfexFiat(_toFiat).mintTo(_fromAddress, _toAmount);
+        INarfexFiat(_toFiat).mintTo(_fromAddress, _toAmount);
+    }
+
+    /// @notice Exchahge fiat to fiat with referral deductions to the agent
+    /// @param _fromAddress Wallet address
+    /// @param _fromToken Fiat to be burned
+    /// @param _toFiat Fiat to be minted
+    /// @param _fromAmount Amount of fiat to be burned
+    /// @param _toAmount Amount of fiat to be minted
+    /// @param _agent Agent wallet address
+    /// @param _bounty Referral reward
+    function exchangeFiatToFiatWithBounty(
+        address _fromAddress,
+        address _fromToken,
+        address _toFiat,
+        uint256 _fromAmount,
+        uint256 _toAmount,
+        address _agent,
+        uint256 _bounty
+    ) public onlyOwner {
+        exchangeFiatToFiat(_fromAddress, _fromToken, _toFiat, _fromAmount, _toAmount);
+        INarfexFiat(_fromToken).mintTo(_agent, _bounty);
+    }
+
+    /// @notice Exchange token to fiat with referral deductions to the agent
+    /// @param _fromAddress Wallet address
+    /// @param _fromToken Fiat to be burned
+    /// @param _toFiat Fiat to be minted
+    /// @param _fromAmount Amount of fiat to be burned
+    /// @param _toAmount Amount of fiat to be minted
+    /// @param _agent Agent wallet address
+    /// @param _bounty Referral reward
+    function exchangeCryptoToFiatWithBounty(
+        address _fromAddress,
+        address _fromToken,
+        address _toFiat,
+        uint256 _fromAmount,
+        uint256 _toAmount,
+        address _agent,
+        uint256 _bounty
+    ) public onlyOwner {
+        exchangeCryptoToFiat(_fromAddress, _fromToken, _toFiat, _fromAmount, _toAmount);
+        INarfexFiat(_toFiat).mintTo(_agent, _bounty);
+    }
+
+    /// @notice Burn fiat from the address with referral deductions to the agent
+    /// @param _fromAddress Wallet address
+    /// @param _fiat Fiat to be burned
+    /// @param _amount Amount of fiat to be burned
+    /// @param _agent Agent wallet address
+    /// @param _bounty Referral reward
+    function burnWithBounty(
+        address _fromAddress,
+        address _fiat,
+        uint256 _amount,
+        address _agent,
+        uint256 _bounty
+    ) public onlyOwner {
+        INarfexFiat(_fiat).burnFrom(_fromAddress, _amount);
+        INarfexFiat(_fiat).mintTo(_agent, _bounty);
     }
 }

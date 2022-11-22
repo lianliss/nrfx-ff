@@ -4,7 +4,7 @@ const accounts = require('../accounts');
  
 const networks = {
   bsc: {
-      url: "https://bsc-dataseed.binance.org/",
+      url: "https://bsc-dataseed1.defibit.io/",
       chainId: 56,
       gasPrice: 20000000000,
       accounts: [accounts.bsc.privateKey]
