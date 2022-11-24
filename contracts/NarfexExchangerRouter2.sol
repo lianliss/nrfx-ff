@@ -103,6 +103,11 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
     event SwapDEX(address indexed _account, address _fromToken, address _toToken, uint inAmount, uint outAmount);
     event ReferralReward(address _token, uint _amount, address indexed _receiver);
 
+    /// @notice Default function for BNB receive. Accepts BNB only from WBNB contract
+    receive() external payable {
+        assert(msg.sender == address(WBNB));
+    }
+
     /// @notice Assigns token data from oracle to structure with token address
     /// @param addr Token address
     /// @param t Token data from the oracle
@@ -136,8 +141,8 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
     {
         /// Calculate price
         {
-            uint priceA = A.addr == address(USDT) ? 1 : A.price;
-            uint priceB = B.addr == address(USDT) ? 1 : B.price;
+            uint priceA = A.addr == address(USDT) ? 10**18 : A.price;
+            uint priceB = B.addr == address(USDT) ? 10**18 : B.price;
             exchange.rate = priceA * PRECISION / priceB;
         }
 
