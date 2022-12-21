@@ -334,6 +334,9 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
             transferInAmount = A.transferFee > 0
                 ? data.inAmount * (PERCENT_PRECISION + A.transferFee) / PERCENT_PRECISION
                 : data.inAmount;
+            require(data.inAmount <= data.inAmountMax, "Input amount is higher than maximum");
+        } else {
+            require(data.outAmount >= data.outAmountMin, "Output amount is lower than minimum");
         }
         address firstPair = PancakeLibrary.pairFor(data.path[0], data.path[1]);
         if (A.addr == address(WBNB)) {
