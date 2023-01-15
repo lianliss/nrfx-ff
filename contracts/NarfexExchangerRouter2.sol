@@ -1,10 +1,15 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
-import './NarfexExchangerRouter.sol';
 import './PancakeLibrary.sol';
 import './INarfexOracle.sol';
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+interface INarfexFiat is IERC20 {
+    function burnFrom(address _address, uint _amount) external;
+    function mintTo(address _address, uint _amount) external;
+}
 
 interface INarfexExchangerPool {
     function getBalance() external view returns (uint);
@@ -23,7 +28,7 @@ interface IWBNB {
 /// @dev Exchanges using USDT liquidity pool
 /// @dev Uses Narfex oracle to get commissions and prices
 /// @dev Supports tokens with a transfer fee
-contract NarfexExchangerRouter2 is NarfexExchangerRouter {
+contract NarfexExchangerRouter2 is Ownable {
     using Address for address;
 
     /// Structures for solving the problem of limiting the number of variables
@@ -76,16 +81,12 @@ contract NarfexExchangerRouter2 is NarfexExchangerRouter {
     /// @param _poolAddress NarfexExchangerPool address
     /// @param _usdtAddress USDT address
     /// @param _wbnbAddress WrapBNB address
-    /// @param _fiatFactoryAddress NarfexFiatFactory for compability with old router
-    /// @param _nrfxAddress NRFX address for compability with old router
     constructor (
         address _oracleAddress,
         address _poolAddress,
         address _usdtAddress,
-        address _wbnbAddress,
-        address _fiatFactoryAddress,
-        address _nrfxAddress
-    ) NarfexExchangerRouter(_fiatFactoryAddress, _nrfxAddress, msg.sender) {
+        address _wbnbAddress
+    ) {
         oracle = INarfexOracle(_oracleAddress);
         USDT = IERC20(_usdtAddress);
         WBNB = IWBNB(_wbnbAddress);

@@ -22,8 +22,8 @@
     "compile": "npx hardhat compile",
     "deployBSC": "npx hardhat run scripts/deploy.js --network bsc",
     "deployTest": "npx hardhat run scripts/deploy.js --network test",
-    "deployRouter": "npx hardhat run scripts/deployRouter.js --network test",
-    "deployPoolTest": "npx hardhat run scripts/deployPool.js --network test",
+    "deployRouter": "npx hardhat run scripts/deployRouter.js --network bsc",
+    "deployPool": "npx hardhat run scripts/deployPool.js --network bsc",
     "deployBalances": "npx hardhat run scripts/deployBalances.js --network bsc"
   }
 }

@@ -5,12 +5,10 @@ async function main() {
   const routerContract = await ethers.getContractFactory("NarfexExchangerRouter2");
 
   const router = await routerContract.deploy(
-  '0x0CdCad1e2c9C59920E916aDC75B7b21B5c2f78D5', // oracle
-  '0xFd9947Ad969ac228eb7792535c4F015CCdfED739', // pool
-  '0x7ef95a0FEE0Dd31b22626fA2e10Ee6A223F8a684', // usdt
-  '0xae13d989dac2f0debff460ac112a837c89baa7cd', // wbnb
-  '0xF1f8206c94F38525E94919E7381889B3d6D57Ac5', // fiat factory
-  '0xcDA8eD22bB27Fe84615f368D09B5A8Afe4a99320', // nrfx
+  '0xE948F3AE41105118A48B0a656f59C5B4113d404e', // oracle
+  '0x40fA05f47C0aC1033Fa94e4d6aD398B4BB4d1007', // pool
+  '0x55d398326f99059fF775485246999027B3197955', // usdt
+  '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // wbnb
   );
   await router.deployed();
 
