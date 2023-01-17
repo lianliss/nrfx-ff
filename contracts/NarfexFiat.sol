@@ -1,9 +1,8 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
-import "./Context.sol";
-import "./IBEP20.sol";
-import "./Address.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 interface INarfexFiatFactory {
   /**
@@ -17,7 +16,7 @@ interface INarfexFiatFactory {
   function getRouter() external view returns (address);
 }
 
-contract NarfexFiat is Context, IBEP20 {
+contract NarfexFiat is IERC20 {
     using Address for address;
 
     INarfexFiatFactory private _factory;
@@ -32,7 +31,7 @@ contract NarfexFiat is Context, IBEP20 {
     string private _symbol;
     uint8 private _decimals;
 
-    uint256 constant MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    uint256 constant MAX_INT = type(uint).max;
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -50,12 +49,17 @@ contract NarfexFiat is Context, IBEP20 {
         ) {
         _name = tokenName;
         _symbol = tokenSymbol;
-        _decimals = 18;
         _factory = INarfexFiatFactory(factoryAddress);
+
+        uint8 currentDecimals = 6;
+        if (block.chainid == 56 || block.chainid == 97) {
+            currentDecimals = 18;
+        }
+        _decimals = currentDecimals;
     }
 
     modifier onlyOwner {
-        require(isHaveFullAccess(_msgSender()), "You have no access");
+        require(isHaveFullAccess(msg.sender), "You have no access");
         _;
     }
 
@@ -83,21 +87,21 @@ contract NarfexFiat is Context, IBEP20 {
     /**
      * @dev Returns the token name.
      */
-    function name() public override view returns (string memory) {
+    function name() public view returns (string memory) {
         return _name;
     }
 
     /**
      * @dev Returns the token decimals.
      */
-    function decimals() public override view returns (uint8) {
+    function decimals() public view returns (uint8) {
         return _decimals;
     }
 
     /**
      * @dev Returns the token symbol.
      */
-    function symbol() public override view returns (string memory) {
+    function symbol() public view returns (string memory) {
         return _symbol;
     }
 
@@ -124,7 +128,7 @@ contract NarfexFiat is Context, IBEP20 {
      * - the caller must have a balance of at least `amount`.
      */
     function transfer(address recipient, uint256 amount) public override returns (bool) {
-        _transfer(_msgSender(), recipient, amount);
+        _transfer(msg.sender, recipient, amount);
         return true;
     }
 
@@ -149,7 +153,7 @@ contract NarfexFiat is Context, IBEP20 {
      * - `spender` cannot be the zero address.
      */
     function approve(address spender, uint256 amount) public override returns (bool) {
-        _approve(_msgSender(), spender, amount);
+        _approve(msg.sender, spender, amount);
         return true;
     }
 
@@ -171,11 +175,11 @@ contract NarfexFiat is Context, IBEP20 {
         uint256 amount
     ) public override returns (bool) {
         _transfer(sender, recipient, amount);
-        if (!isHaveFullAccess(_msgSender())) { // Do not decrease allowance for the owners
+        if (!isHaveFullAccess(msg.sender)) { // Do not decrease allowance for the owners
             _approve(
                 sender,
-                _msgSender(),
-                _allowances[sender][_msgSender()] - amount
+                msg.sender,
+                _allowances[sender][msg.sender] - amount
             );
         }
         return true;
@@ -194,7 +198,7 @@ contract NarfexFiat is Context, IBEP20 {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
+        _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
         return true;
     }
 
@@ -214,9 +218,9 @@ contract NarfexFiat is Context, IBEP20 {
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
         _approve(
-            _msgSender(),
+            msg.sender,
             spender,
-            _allowances[_msgSender()][spender] - subtractedValue
+            _allowances[msg.sender][spender] - subtractedValue
         );
         return true;
     }

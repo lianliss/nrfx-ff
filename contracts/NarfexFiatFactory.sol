@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import "./NarfexFiat.sol";
-import "./Ownable.sol";
-import "./Context.sol";
-import "./Address.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title Narfex Fiat Factory
 /// @author Danil Sakhinov

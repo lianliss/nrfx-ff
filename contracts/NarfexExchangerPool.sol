@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -14,15 +14,15 @@ contract NarfexExchangerPool is Ownable {
     IERC20 public token;
     address public router;
 
-    uint256 constant MAX_INT = 2**256 - 1;
+    uint256 constant MAX_INT = type(uint).max;
 
     event SetRouter(address routerAddress);
     event Withdraw(address recipient, uint amount);
+    event SetToken(address tokenAddress);
 
     constructor (address _token, address _routerAddress) {
         token = IERC20(_token);
         router = _routerAddress;
-        approveRouter();
     }
 
     /// @notice only factory owner and router have full access
@@ -72,5 +72,20 @@ contract NarfexExchangerPool is Ownable {
     function withdraw(uint _amount) public onlyOwner {
         token.transfer(_msgSender(), _amount);
         emit Withdraw(_msgSender(), _amount);
+    }
+
+    /// @notice Withdraw another tokens to the owner
+    /// @param _amount Amount of tokens to withdraw
+    /// @param _address Another token contract
+    function withdraw(uint _amount, address _address) public onlyOwner {
+        require(_address != address(token), "Withdraw this token without specifying an address");
+        IERC20(_address).transfer(_msgSender(), _amount);
+    }
+
+    /// @notice Change pool token
+    /// @param _address New token address
+    function setToken(address _address) public onlyOwner {
+        token = IERC20(_address);
+        emit SetToken(_address);
     }
 }

@@ -74,6 +74,7 @@ contract NarfexExchangerRouter2 is Ownable {
     INarfexExchangerPool public pool;
 
     uint constant PRECISION = 10**18;
+    uint private USDT_PRECISION = 10**6;
     uint constant PERCENT_PRECISION = 10**4;
     uint constant MAX_INT = 2**256 - 1;
 
@@ -91,6 +92,9 @@ contract NarfexExchangerRouter2 is Ownable {
         USDT = IERC20(_usdtAddress);
         WBNB = IWBNB(_wbnbAddress);
         pool = INarfexExchangerPool(_poolAddress);
+        if (block.chainid == 56 || block.chainid == 97) {
+            USDT_PRECISION = 10**18;
+        }
     }
 
     /// @notice Checking for an outdated transaction
@@ -125,7 +129,7 @@ contract NarfexExchangerRouter2 is Ownable {
     /// @return USDT amount
     function _getUSDTValue(address _token, int _amount) internal view returns (int) {
         if (_amount == 0) return 0;
-        uint uintValue = oracle.getPrice(_token) * uint(_amount) / PRECISION;
+        uint uintValue = oracle.getPrice(_token) * uint(_amount) / USDT_PRECISION;
         return _amount >= 0
             ? int(uintValue)
             : -int(uintValue);
@@ -142,9 +146,9 @@ contract NarfexExchangerRouter2 is Ownable {
     {
         /// Calculate price
         {
-            uint priceA = A.addr == address(USDT) ? 10**18 : A.price;
-            uint priceB = B.addr == address(USDT) ? 10**18 : B.price;
-            exchange.rate = priceA * PRECISION / priceB;
+            uint priceA = A.addr == address(USDT) ? USDT_PRECISION : A.price;
+            uint priceB = B.addr == address(USDT) ? USDT_PRECISION : B.price;
+            exchange.rate = priceA * USDT_PRECISION / priceB;
         }
 
         /// Calculate commission
@@ -155,11 +159,11 @@ contract NarfexExchangerRouter2 is Ownable {
 
         /// Calculate clear amounts
         exchange.inAmountClear = _isExactOut
-            ? _amount * PRECISION / exchange.rate
+            ? _amount * USDT_PRECISION / exchange.rate
             : _amount;
         exchange.outAmountClear = _isExactOut
             ? _amount
-            : _amount * exchange.rate / PRECISION;
+            : _amount * exchange.rate / USDT_PRECISION;
 
         /// Calculate amounts with commission
         if (_isExactOut) {
@@ -575,6 +579,14 @@ contract NarfexExchangerRouter2 is Ownable {
         /// Swap with DEX and Fiats
         data.path = _getDEXSubPath(data.path, A.isFiat);
         _swapFiatWithDEX(_account, data, A.isFiat ? A : B, A.isFiat ? B : A, A.isFiat);  
+    }
+
+    /// @notice Set a new pool address
+    /// @param _newPoolAddress Another pool address
+    /// @param _decimals Pool token decimals
+    function setPool(address _newPoolAddress, uint8 _decimals) public onlyOwner {
+        pool = INarfexExchangerPool(_newPoolAddress);
+        USDT_PRECISION = 10**_decimals;
     }
 
     /// @notice Swap tokens public function

@@ -21,9 +21,12 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "deployBSC": "npx hardhat run scripts/deploy.js --network bsc",
+    "deployETH": "npx hardhat run scripts/deploy.js --network eth",
     "deployTest": "npx hardhat run scripts/deploy.js --network test",
     "deployRouter": "npx hardhat run scripts/deployRouter.js --network bsc",
+    "deployRouterETH": "npx hardhat run scripts/deployRouterETH.js --network eth",
     "deployPool": "npx hardhat run scripts/deployPool.js --network bsc",
+    "deployPoolETH": "npx hardhat run scripts/deployPoolETH.js --network eth",
     "deployBalances": "npx hardhat run scripts/deployBalances.js --network bsc"
   }
 }

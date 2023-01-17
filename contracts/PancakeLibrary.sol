@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 interface IPancakePair {
     function name() external pure returns (string memory);
@@ -51,16 +51,22 @@ library PancakeLibrary {
     /// @param tokenB Second token address
     function pairFor(address tokenA, address tokenB) internal view returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        bool isTestnet = block.chainid == 97;
+        /// ETH data
+        bytes memory factory = hex'5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
+        bytes memory initCodeHash = hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f';
+        if (block.chainid == 56) { /// BSC
+            factory = hex'cA143Ce32Fe78f1f7019d7d551a6402fC5350c73';
+            initCodeHash = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
+        }
+        if (block.chainid == 97) { /// BSC testnet
+            factory = hex'b7926c0430afb07aa7defde6da862ae0bde767bc';
+            initCodeHash = hex'ecba335299a6693cb2ebc4782e74669b84290b6378ea3a3873c7231a8d7d1074';
+        }
         pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
-                isTestnet
-                    ? hex'b7926c0430afb07aa7defde6da862ae0bde767bc' // Factory testnet address
-                    : hex'cA143Ce32Fe78f1f7019d7d551a6402fC5350c73', // Factory mainnet address
+                factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                isTestnet
-                    ? hex'ecba335299a6693cb2ebc4782e74669b84290b6378ea3a3873c7231a8d7d1074' // Factory testnet INIT_CODE_HASH
-                    : hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5' // Factory mainnet INIT_CODE_HASH
+                initCodeHash
             )))));
     }
 
@@ -83,9 +89,13 @@ library PancakeLibrary {
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal view returns (uint amountOut) {
         require(amountIn > 0, 'PancakeLibrary: INSUFFICIENT_INPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'PancakeLibrary: INSUFFICIENT_LIQUIDITY');
-        uint pancakeCommission = block.chainid == 97
-            ? 9980
-            : 9975;
+        uint pancakeCommission = 9970; /// ETH commission
+        if (block.chainid == 56) {
+            pancakeCommission = 9975; /// BSC commission
+        }
+        if (block.chainid == 97) {
+            pancakeCommission = 9980; /// BSC testnet commission
+        }
         uint amountInWithFee = amountIn * pancakeCommission;
         uint numerator = amountInWithFee * reserveOut;
         uint denominator = reserveIn * 10000 + amountInWithFee;
@@ -96,9 +106,13 @@ library PancakeLibrary {
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal view returns (uint amountIn) {
         require(amountOut > 0, 'PancakeLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'PancakeLibrary: INSUFFICIENT_LIQUIDITY');
-        uint pancakeCommission = block.chainid == 97
-            ? 9980
-            : 9975;
+        uint pancakeCommission = 9970; /// ETH commission
+        if (block.chainid == 56) {
+            pancakeCommission = 9975; /// BSC commission
+        }
+        if (block.chainid == 97) {
+            pancakeCommission = 9980; /// BSC testnet commission
+        }
         uint numerator = reserveIn * amountOut * 10000;
         uint denominator = (reserveOut - amountOut) * pancakeCommission;
         amountIn = (numerator / denominator) + 1;
