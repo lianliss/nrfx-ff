@@ -50,6 +50,6 @@ module.exports = {
     },
     networks: networks,
     etherscan: {
-        apiKey: accounts.ether
+        apiKey: accounts.bscscan
     }
 };
