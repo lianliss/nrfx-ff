@@ -200,7 +200,7 @@ contract NarfexExchangerRouter2 is Ownable {
             if (refPercent > 0) {
                 uint refAmount = refPercent * _amount / PERCENT_PRECISION;
                 INarfexFiat(A.addr).mintTo(_receiver, refAmount);
-                emit ReferralReward(A.addr, _amount, _receiver);
+                emit ReferralReward(A.addr, refAmount, _receiver);
                 return refAmount;
             }
         }  
@@ -269,7 +269,7 @@ contract NarfexExchangerRouter2 is Ownable {
             /// Burn fiat from account
             INarfexFiat(A.addr).burnFrom(_accountAddress, exchange.inAmount);
             /// Send refer reward
-            exchange.referReward = _sendReferReward(C, exchange.outAmountClear, _refer);
+            exchange.referReward = _sendReferReward(C, exchange.inAmountClear, _refer);
             exchange.profitUSDT -= _getUSDTValue(C.addr, int(exchange.referReward));
             /// Then transfer USDT
             if (!_isItSwapWithDEX) {
@@ -540,7 +540,6 @@ contract NarfexExchangerRouter2 is Ownable {
         SwapData memory data
         ) private
     {
-        require(data.refer != _account, "Refer address can't be the sender's address");
         require(data.path.length > 1, "Path length must be at least 2 addresses");
         uint lastIndex = data.path.length - 1;
 
@@ -587,6 +586,12 @@ contract NarfexExchangerRouter2 is Ownable {
     function setPool(address _newPoolAddress, uint8 _decimals) public onlyOwner {
         pool = INarfexExchangerPool(_newPoolAddress);
         USDT_PRECISION = 10**_decimals;
+    }
+
+    /// @notice Set a new oracle address
+    /// @param _newOracleAddress Another oracle address
+    function setOracle(address _newOracleAddress) public onlyOwner {
+        oracle = INarfexOracle(_newOracleAddress);
     }
 
     /// @notice Swap tokens public function
