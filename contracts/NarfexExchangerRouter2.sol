@@ -617,7 +617,7 @@ contract NarfexExchangerRouter2 is Ownable {
         data.inAmount = isExactOut ? 0 : amount;
         data.inAmountMax = isExactOut ? amountLimit : MAX_INT;
         data.outAmount = isExactOut ? amount : 0;
-        data.outAmountMin = isExactOut ? amountLimit : 0;
+        data.outAmountMin = isExactOut ? 0 : amountLimit;
         data.refer = refer;
 
         _swap(payable(msg.sender), data);
