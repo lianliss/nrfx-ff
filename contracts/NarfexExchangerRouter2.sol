@@ -622,34 +622,4 @@ contract NarfexExchangerRouter2 is Ownable {
 
         _swap(payable(msg.sender), data);
     }
-
-    /// @notice Allows the owner to perform a swap for the user
-    /// @param _account User account
-    /// @param path An array of addresses representing the exchange path
-    /// @param isExactOut Is the amount an output value
-    /// @param amountLimit Becomes the min output amount for isExactOut=true, and max input for false
-    /// @param deadline The transaction must be completed no later than the specified time
-    /// @param refer Referral agent address
-    /// @dev Suitable for cases where the user does not have gas to exchange fiat for BNB
-    function swapFor(
-        address payable _account,
-        address[] memory path,
-        bool isExactOut,
-        uint amount,
-        uint amountLimit,
-        uint deadline,
-        address refer) public payable ensure(deadline) onlyOwner
-    {
-        SwapData memory data;
-        data.path = path;
-        data.isExactOut = isExactOut;
-        data.amount = amount;
-        data.inAmount = isExactOut ? 0 : amount;
-        data.inAmountMax = isExactOut ? amountLimit : MAX_INT;
-        data.outAmount = isExactOut ? amount : 0;
-        data.outAmountMin = isExactOut ? amountLimit : 0;
-        data.refer = refer;
-
-        _swap(_account, data);
-    }
 }
