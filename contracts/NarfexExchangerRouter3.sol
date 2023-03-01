@@ -31,7 +31,7 @@ interface IWBNB {
 /// @title DEX Router for Narfex Fiats
 /// @author Danil Sakhinov
 /// @dev Allows to exchange between fiats and crypto coins
-/// @dev Exchanges using USDT liquidity pool
+/// @dev Exchanges using USDC liquidity pool
 /// @dev Uses Narfex oracle to get prices
 /// @dev Supports tokens with a transfer fee
 contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
@@ -68,32 +68,32 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
         uint transferFee;
     }
 
-    IERC20 public USDT;
+    IERC20 public USDC;
     IWBNB public WBNB;
     INarfexOracle public oracle;
     INarfexExchangerPool public pool;
 
     uint constant PRECISION = 10**18;
-    uint private USDT_PRECISION = 10**6;
+    uint private USDC_PRECISION = 10**6;
     uint constant PERCENT_PRECISION = 10**4;
     uint constant MAX_INT = 2**256 - 1;
 
     /// @param _oracleAddress NarfexOracle address
     /// @param _poolAddress NarfexExchangerPool address
-    /// @param _usdtAddress USDT address
+    /// @param _usdcAddress USDC address
     /// @param _wbnbAddress WrapBNB address
     constructor (
         address _oracleAddress,
         address _poolAddress,
-        address _usdtAddress,
+        address _usdcAddress,
         address _wbnbAddress
     ) {
         oracle = INarfexOracle(_oracleAddress);
-        USDT = IERC20(_usdtAddress);
+        USDC = IERC20(_usdcAddress);
         WBNB = IWBNB(_wbnbAddress);
         pool = INarfexExchangerPool(_poolAddress);
         if (block.chainid == 56 || block.chainid == 97) {
-            USDT_PRECISION = 10**18;
+            USDC_PRECISION = 10**18;
         }
     }
 
@@ -122,13 +122,13 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
         return Token(addr, t.isFiat, t.commission, t.price, t.reward, t.transferFee);
     }
 
-    /// @notice Returns the price of the token quantity in USDT equivalent
+    /// @notice Returns the price of the token quantity in USDC equivalent
     /// @param _token Token address
     /// @param _amount Token amount
-    /// @return USDT amount
-    function _getUSDTValue(address _token, int _amount) internal view returns (int) {
+    /// @return USDC amount
+    function _getUSDCValue(address _token, int _amount) internal view returns (int) {
         if (_amount == 0) return 0;
-        uint uintValue = oracle.getPrice(_token) * uint(_amount) / USDT_PRECISION;
+        uint uintValue = oracle.getPrice(_token) * uint(_amount) / USDC_PRECISION;
         return _amount >= 0
             ? int(uintValue)
             : -int(uintValue);
@@ -145,18 +145,18 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
     {
         /// Calculate price
         {
-            uint priceA = A.addr == address(USDT) ? USDT_PRECISION : A.price;
-            uint priceB = B.addr == address(USDT) ? USDT_PRECISION : B.price;
-            exchange.rate = priceA * USDT_PRECISION / priceB;
+            uint priceA = A.addr == address(USDC) ? USDC_PRECISION : A.price;
+            uint priceB = B.addr == address(USDC) ? USDC_PRECISION : B.price;
+            exchange.rate = priceA * USDC_PRECISION / priceB;
         }
 
         /// Calculate clear amounts
         exchange.inAmount = _isExactOut
-            ? _amount * USDT_PRECISION / exchange.rate
+            ? _amount * USDC_PRECISION / exchange.rate
             : _amount;
         exchange.outAmount = _isExactOut
             ? _amount
-            : _amount * exchange.rate / USDT_PRECISION;
+            : _amount * exchange.rate / USDC_PRECISION;
     }
 
     /// @notice Only exchanges between fiats
@@ -181,39 +181,39 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
         emit SwapFiat(_toAddress, A.addr, B.addr, exchange);
     }
 
-    /// @notice Fiat and USDT Pair Exchange
+    /// @notice Fiat and USDC Pair Exchange
     /// @param data Swap data
     /// @param A First token
     /// @param B Second token
     /// @param exchange Calculated values to exchange
-    /// @param _isItSwapWithDEX Cancels sending USDT to the user
+    /// @param _isItSwapWithDEX Cancels sending USDC to the user
     /// @dev The last parameter is needed for further or upcoming work with DEX
-    function _swapFiatAndUSDT(
+    function _swapFiatAndUSDC(
         SwapData memory data,
         Token memory A,
         Token memory B,
         ExchangeData memory exchange,
         bool _isItSwapWithDEX
-    ) private returns (uint usdtAmount) {
-        if (A.addr == address(USDT)) {
-            /// If conversion from USDT to fiat
+    ) private returns (uint usdcAmount) {
+        if (A.addr == address(USDC)) {
+            /// If conversion from USDC to fiat
             if (!_isItSwapWithDEX) { 
                 /// Transfer from the account
-                USDT.transferFrom(data.from, address(pool), exchange.inAmount);
-            } /// ELSE: USDT must be already transferred to the pool by DEX
+                USDC.transferFrom(data.from, address(pool), exchange.inAmount);
+            } /// ELSE: USDC must be already transferred to the pool by DEX
             /// Mint fiat to the final account
             INarfexFiat(B.addr).mintTo(data.to, exchange.outAmount);
         } else {
-            /// If conversion from fiat to usdt
+            /// If conversion from fiat to usdc
             require(pool.getBalance() >= exchange.outAmount, "Not enough liquidity pool amount");
             /// Burn fiat from account
             INarfexFiat(A.addr).burnFrom(data.from, exchange.inAmount);
-            /// Then transfer USDT
+            /// Then transfer USDC
             if (!_isItSwapWithDEX) {
-                /// Transfer USDT to the final account
-                USDT.transferFrom(address(pool), data.to, exchange.outAmount);
+                /// Transfer USDC to the final account
+                USDC.transferFrom(address(pool), data.to, exchange.outAmount);
             }
-            usdtAmount = exchange.outAmount;
+            usdcAmount = exchange.outAmount;
         }
 
         emit SwapFiat(data.to, A.addr, B.addr, exchange);
@@ -336,19 +336,19 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
         bool isFromFiat
         ) private
     {
-        /// USDT token data
-        Token memory U = _assignTokenData(address(USDT), oracle.getTokenData(address(USDT), false));
+        /// USDC token data
+        Token memory U = _assignTokenData(address(USDC), oracle.getTokenData(address(USDC), false));
         uint lastIndex = data.path.length - 1;
 
         require((isFromFiat && data.path[0] == U.addr)
             || (!isFromFiat && data.path[lastIndex] == U.addr),
-            "The exchange between fiat and crypto must be done via USDT");
+            "The exchange between fiat and crypto must be done via USDC");
 
         ExchangeData memory exchange;
 
         if (data.isExactOut) {
             /// If exact OUT
-            if (isFromFiat) { /// FIAT > USDT > DEX > COIN!!
+            if (isFromFiat) { /// FIAT > USDC > DEX > COIN!!
                 /// Calculate other amounts from the start amount data
                 data.outAmount = data.amount;
                 if (C.transferFee > 0) {
@@ -358,12 +358,12 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                 _processSwapData(data);
                 exchange = _getExchangeValues(F, U, data.inAmount, true);
                 require(exchange.inAmount <= data.inAmountMax, "Input amount is higher than maximum");
-                /// Swap Fiat with USDT
-                _swapFiatAndUSDT(data, F, U, exchange, true);
-                /// Transfer USDT from the Pool to the first pair
+                /// Swap Fiat with USDC
+                _swapFiatAndUSDC(data, F, U, exchange, true);
+                /// Transfer USDC from the Pool to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(U.addr, data.path[1]);
-                    SafeERC20.safeTransferFrom(USDT, address(pool), firstPair, data.inAmount);
+                    SafeERC20.safeTransferFrom(USDC, address(pool), firstPair, data.inAmount);
                 }
                 /// Swap and send to the account
                 if (C.addr == address(WBNB)) {
@@ -376,7 +376,7 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                     _swapDEX(data.amounts, data.path, data.to);
                 }
                 emit SwapDEX(data.to, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
-            } else { /// COIN > DEX > USDT > FIAT!!
+            } else { /// COIN > DEX > USDC > FIAT!!
                 /// Calculate other amounts from the start amount data
                 exchange = _getExchangeValues(U, F, data.amount, true);
                 data.outAmount = exchange.inAmount;
@@ -402,26 +402,26 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                         SafeERC20.safeTransferFrom(IERC20(C.addr), data.from, firstPair, inAmountWithFee);
                     }
                 }
-                /// Swap and send USDT to the pool
+                /// Swap and send USDC to the pool
                 _swapDEX(data.amounts, data.path, address(pool));
                 emit SwapDEX(data.to, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
-                /// Swap USDT and Fiat
-                _swapFiatAndUSDT(data, U, F, exchange, true);
+                /// Swap USDC and Fiat
+                _swapFiatAndUSDC(data, U, F, exchange, true);
             }
         } else {
             /// If exact IN
-            if (isFromFiat) { /// FIAT!! > USDT > DEX > COIN
+            if (isFromFiat) { /// FIAT!! > USDC > DEX > COIN
                 /// Calculate other amounts from the start amount data
                 exchange = _getExchangeValues(F, U, data.amount, false);
                 data.inAmount = exchange.outAmount;
                 _processSwapData(data);
                 require(data.outAmount >= data.outAmountMin, "Output amount is lower than minimum");
-                /// Swap Fiat with USDT
-                _swapFiatAndUSDT(data, F, U, exchange, true);
-                /// Transfer USDT from the Pool to the first pair
+                /// Swap Fiat with USDC
+                _swapFiatAndUSDC(data, F, U, exchange, true);
+                /// Transfer USDC from the Pool to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(U.addr, data.path[1]);
-                    SafeERC20.safeTransferFrom(USDT, address(pool), firstPair, data.inAmount);
+                    SafeERC20.safeTransferFrom(USDC, address(pool), firstPair, data.inAmount);
                     /// TransferFee only affects delivered amount
                 }
                 /// Swap and send to the account
@@ -435,7 +435,7 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                     _swapDEX(data.amounts, data.path, data.to);
                 }
                 emit SwapDEX(data.to, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
-            } else { /// COIN!! > DEX > USDT > FIAT
+            } else { /// COIN!! > DEX > USDC > FIAT
                 /// Calculate other amounts from the start amount data
                 data.inAmount = data.amount;
                 if (C.transferFee > 0) {
@@ -458,11 +458,11 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                         SafeERC20.safeTransferFrom(IERC20(C.addr), data.from, firstPair, data.amount); /// Full amount
                     }
                 }
-                /// Swap and send USDT to the pool
+                /// Swap and send USDC to the pool
                 _swapDEX(data.amounts, data.path, address(pool));
                 emit SwapDEX(data.to, data.path[0], data.path[lastIndex], data.inAmount, data.outAmount);
-                /// Swap USDT and Fiat
-                _swapFiatAndUSDT(data, U, F, exchange, true);
+                /// Swap USDC and Fiat
+                _swapFiatAndUSDC(data, U, F, exchange, true);
             }
         }
     }
@@ -500,11 +500,11 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
             _swapOnlyDEX(data, A, B);
             return;
         }
-        if ((A.isFiat && B.addr == address(USDT))
-            || (B.isFiat && A.addr == address(USDT)))
-        { /// If swap between fiat and USDT in the pool
+        if ((A.isFiat && B.addr == address(USDC))
+            || (B.isFiat && A.addr == address(USDC)))
+        { /// If swap between fiat and USDC in the pool
             ExchangeData memory exchange = _getExchangeValues(A, B, data.amount, data.isExactOut);
-            _swapFiatAndUSDT(data, A, B, exchange, false);
+            _swapFiatAndUSDC(data, A, B, exchange, false);
             return;
         }
 
@@ -518,7 +518,7 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
     /// @param _decimals Pool token decimals
     function setPool(address _newPoolAddress, uint8 _decimals) public onlyOwner {
         pool = INarfexExchangerPool(_newPoolAddress);
-        USDT_PRECISION = 10**_decimals;
+        USDC_PRECISION = 10**_decimals;
     }
 
     /// @notice Set a new oracle address
@@ -533,7 +533,7 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
     /// @param amountLimit Becomes the min output amount for isExactOut=true, and max input for false
     /// @param deadline The transaction must be completed no later than the specified time
     /// @dev If the user wants to get an exact amount in the output, isExactOut should be true
-    /// @dev Fiat to crypto must be exchanged via USDT
+    /// @dev Fiat to crypto must be exchanged via USDC
     function swap(
         address[] memory path,
         bool isExactOut,
