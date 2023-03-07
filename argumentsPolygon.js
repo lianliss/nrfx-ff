@@ -1,5 +1,5 @@
 module.exports = [
 	"Russian Ruble on Narfex",
     "RUB",
-    "0xF9ceb479201054d2B301f9052A5fFBe47D652358",
+    "0xAD1Fc0E22C13159884Cf9FD1d46e3C2Ad60C8F36",
 ];

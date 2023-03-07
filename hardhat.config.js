@@ -9,7 +9,7 @@ const networks = {
     eth: {
         url: "https://rpc.ankr.com/eth/6c2f34a42715fa4c50762b0069a7a658618c752709b7db32f7bfe442741117eb",
         chainId: 1,
-        gasPrice: 18000000000,
+        gasPrice: 25000000000,
         accounts: [accounts.bsc.privateKey]
     },
     bsc: {
@@ -21,7 +21,13 @@ const networks = {
     polygon: {
         url: "https://polygon-rpc.com",
         chainId: 137,
-        gasPrice: 53000000000,
+        gasPrice: 140000000000,
+        accounts: [accounts.bsc.privateKey]
+    },
+    arbitrum: {
+        url: "https://arb1.arbitrum.io/rpc",
+        chainId: 42161,
+        gasPrice: 200000000,
         accounts: [accounts.bsc.privateKey]
     },
     mumbai: {
@@ -31,9 +37,9 @@ const networks = {
         accounts: [accounts.bsc.privateKey]
     },
       test: {
-      url: "https://bsctestapi.terminet.io/rpc",
+      url: "https://bsc-testnet.public.blastapi.io",
       chainId: 97,
-      gasPrice: 530000000000,
+      gasPrice: 20000000000,
       accounts: [accounts.bsc.privateKey]
     },
 };
@@ -44,7 +50,7 @@ module.exports = {
         settings: {
             optimizer: {
                 enabled: true,
-                runs: 200
+                runs: 1000
             }
         }
     },

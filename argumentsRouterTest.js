@@ -1,0 +1,8 @@
+module.exports = [
+'0xFB29811E856765443f593f5499b314c60378c6Bc', // oracle
+  '0xd92271C20A5a3A03d8Eb6244D1c002EBed525605', // pool
+  '0xde077512737e2272690fcf65c033a406f6bbb53b', // usdc
+  '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd', // wbnb
+  ];
+  
+const library = '0x1D56C60ade7A48B88269e3CB794d05dDF64dE9c0';

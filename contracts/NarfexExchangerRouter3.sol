@@ -22,7 +22,7 @@ interface INarfexExchangerPool {
     function clearFeeAmount() external;
 }
 
-interface IWBNB {
+interface IWETH {
     function deposit() external payable;
     function transfer(address to, uint value) external returns (bool);
     function withdraw(uint) external;
@@ -69,28 +69,28 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
     }
 
     IERC20 public USDC;
-    IWBNB public WBNB;
-    INarfexOracle public oracle;
-    INarfexExchangerPool public pool;
+    IWETH public WETH;
+    INarfexOracle internal oracle;
+    INarfexExchangerPool internal pool;
 
     uint constant PRECISION = 10**18;
-    uint private USDC_PRECISION = 10**6;
+    uint internal USDC_PRECISION = 10**6;
     uint constant PERCENT_PRECISION = 10**4;
     uint constant MAX_INT = 2**256 - 1;
 
     /// @param _oracleAddress NarfexOracle address
     /// @param _poolAddress NarfexExchangerPool address
     /// @param _usdcAddress USDC address
-    /// @param _wbnbAddress WrapBNB address
+    /// @param _wethAddress WrapETH address
     constructor (
         address _oracleAddress,
         address _poolAddress,
         address _usdcAddress,
-        address _wbnbAddress
+        address _wethAddress
     ) {
         oracle = INarfexOracle(_oracleAddress);
         USDC = IERC20(_usdcAddress);
-        WBNB = IWBNB(_wbnbAddress);
+        WETH = IWETH(_wethAddress);
         pool = INarfexExchangerPool(_poolAddress);
         if (block.chainid == 56 || block.chainid == 97) {
             USDC_PRECISION = 10**18;
@@ -107,9 +107,9 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
     event SwapFiat(address indexed _account, address _fromToken, address _toToken, ExchangeData _exchange);
     event SwapDEX(address indexed _account, address _fromToken, address _toToken, uint inAmount, uint outAmount);
 
-    /// @notice Default function for BNB receive. Accepts BNB only from WBNB contract
+    /// @notice Default function for ETH receive. Accepts ETH only from WETH contract
     receive() external payable {
-        assert(msg.sender == address(WBNB));
+        assert(msg.sender == address(WETH));
     }
 
     /// @notice Assigns token data from oracle to structure with token address
@@ -279,11 +279,11 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
             require(data.outAmount >= data.outAmountMin, "Output amount is lower than minimum");
         }
         address firstPair = PancakeLibrary.pairFor(data.path[0], data.path[1]);
-        if (A.addr == address(WBNB)) {
+        if (A.addr == address(WETH)) {
             /// BNB insert
             require(msg.value >= transferInAmount, "BNB is not sended");
-            WBNB.deposit{value: transferInAmount}();
-            assert(WBNB.transfer(firstPair, transferInAmount));
+            WETH.deposit{value: transferInAmount}();
+            assert(WETH.transfer(firstPair, transferInAmount));
             if (msg.value > transferInAmount) {
                 /// Return unused BNB
                 data.from.transfer(msg.value - transferInAmount);
@@ -292,10 +292,10 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
             /// Coin insert
             SafeERC20.safeTransferFrom(IERC20(data.path[0]), data.from, firstPair, transferInAmount);
         }
-        if (B.addr == address(WBNB)) {
+        if (B.addr == address(WETH)) {
             /// Send BNB after swap
             _swapDEX(data.amounts, data.path, address(this));
-            WBNB.withdraw(data.outAmount);
+            WETH.withdraw(data.outAmount);
             data.to.transfer(data.outAmount);
         } else {
             /// Send Coin after swap
@@ -366,10 +366,10 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                     SafeERC20.safeTransferFrom(USDC, address(pool), firstPair, data.inAmount);
                 }
                 /// Swap and send to the account
-                if (C.addr == address(WBNB)) {
+                if (C.addr == address(WETH)) {
                     /// Swap with BNB out
                     _swapDEX(data.amounts, data.path, address(this));
-                    WBNB.withdraw(data.outAmount);
+                    WETH.withdraw(data.outAmount);
                     data.to.transfer(data.outAmount);
                 } else {
                     /// Swap with coin out
@@ -385,11 +385,11 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                 /// Transfer Coin from the account to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(C.addr, data.path[1]);
-                    if (C.addr == address(WBNB)) {
+                    if (C.addr == address(WETH)) {
                         /// BNB transfer
                         require(msg.value >= data.inAmount, "BNB is not sended");
-                        WBNB.deposit{value: data.inAmount}();
-                        assert(WBNB.transfer(firstPair, data.inAmount));
+                        WETH.deposit{value: data.inAmount}();
+                        assert(WETH.transfer(firstPair, data.inAmount));
                         if (msg.value > data.inAmount) {
                             /// Return unused BNB
                             data.from.transfer(msg.value - data.inAmount);
@@ -425,10 +425,10 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                     /// TransferFee only affects delivered amount
                 }
                 /// Swap and send to the account
-                if (C.addr == address(WBNB)) {
-                    /// Swap with BNB transfer
+                if (C.addr == address(WETH)) {
+                    /// Swap with ETH transfer
                     _swapDEX(data.amounts, data.path, address(this));
-                    WBNB.withdraw(data.outAmount);
+                    WETH.withdraw(data.outAmount);
                     data.to.transfer(data.outAmount);
                 } else {
                     /// Swap with coin transfer
@@ -448,11 +448,11 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
                 /// Transfer Coin from the account to the first pair
                 {
                     address firstPair = PancakeLibrary.pairFor(C.addr, data.path[1]);
-                    if (C.addr == address(WBNB)) {
+                    if (C.addr == address(WETH)) {
                         /// BNB transfer
                         require(msg.value >= data.amount, "BNB is not sended");
-                        WBNB.deposit{value: data.amount}();
-                        assert(WBNB.transfer(firstPair, data.amount));
+                        WETH.deposit{value: data.amount}();
+                        assert(WETH.transfer(firstPair, data.amount));
                     } else {
                         /// Coin transfer
                         SafeERC20.safeTransferFrom(IERC20(C.addr), data.from, firstPair, data.amount); /// Full amount
@@ -553,5 +553,13 @@ contract NarfexExchangerRouter3 is Ownable, ReentrancyGuard {
         data.outAmountMin = isExactOut ? 0 : amountLimit;
 
         _swap(data);
+    }
+
+    function getPool() public view returns(address) {
+        return address(pool);
+    }
+
+    function getOracle() public view returns(address) {
+        return address(oracle);
     }
 }

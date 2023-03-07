@@ -59,8 +59,12 @@ library PancakeLibrary {
             initCodeHash = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
         }
         if (block.chainid == 97) { /// BSC testnet
-            factory = hex'b7926c0430afb07aa7defde6da862ae0bde767bc';
+            factory = hex'B7926C0430Afb07AA7DEfDE6DA862aE0Bde767bc';
             initCodeHash = hex'ecba335299a6693cb2ebc4782e74669b84290b6378ea3a3873c7231a8d7d1074';
+        }
+        if (block.chainid == 137 || block.chainid == 42161) { /// Polygon or Arbitrum
+            factory = hex'c35DADB65012eC5796536bD9864eD8773aBc74C4';
+            initCodeHash = hex'e18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303';
         }
         pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
@@ -89,14 +93,14 @@ library PancakeLibrary {
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal view returns (uint amountOut) {
         require(amountIn > 0, 'PancakeLibrary: INSUFFICIENT_INPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'PancakeLibrary: INSUFFICIENT_LIQUIDITY');
-        uint pancakeCommission = 9970; /// ETH commission
+        uint poolCommission = 9970; /// ETH, Polygon, Arbitrum commission
         if (block.chainid == 56) {
-            pancakeCommission = 9975; /// BSC commission
+            poolCommission = 9975; /// BSC commission
         }
         if (block.chainid == 97) {
-            pancakeCommission = 9980; /// BSC testnet commission
+            poolCommission = 9980; /// BSC testnet commission
         }
-        uint amountInWithFee = amountIn * pancakeCommission;
+        uint amountInWithFee = amountIn * poolCommission;
         uint numerator = amountInWithFee * reserveOut;
         uint denominator = reserveIn * 10000 + amountInWithFee;
         amountOut = numerator / denominator;
@@ -106,15 +110,15 @@ library PancakeLibrary {
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal view returns (uint amountIn) {
         require(amountOut > 0, 'PancakeLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'PancakeLibrary: INSUFFICIENT_LIQUIDITY');
-        uint pancakeCommission = 9970; /// ETH commission
+        uint poolCommission = 9970; /// ETH, Polygon, Arbitrum commission
         if (block.chainid == 56) {
-            pancakeCommission = 9975; /// BSC commission
+            poolCommission = 9975; /// BSC commission
         }
         if (block.chainid == 97) {
-            pancakeCommission = 9980; /// BSC testnet commission
+            poolCommission = 9980; /// BSC testnet commission
         }
         uint numerator = reserveIn * amountOut * 10000;
-        uint denominator = (reserveOut - amountOut) * pancakeCommission;
+        uint denominator = (reserveOut - amountOut) * poolCommission;
         amountIn = (numerator / denominator) + 1;
     }
 
