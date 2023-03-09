@@ -6,4 +6,6 @@ interface INarfexP2pRouter {
     function swapToETH(address to, address token, uint amount) external;
     function getPool() external view returns(address);
     function getOracle() external view returns(address);
+    function getETHPrice(address _token) external view returns(uint);
+    function getIsFiat(address _token) external view returns(bool);
 }

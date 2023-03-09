@@ -2,7 +2,6 @@ const hre = require("hardhat");
 
 async function main() {
 
-  /**
   const pool = await (await ethers.getContractFactory("NarfexExchangerPool")).deploy(
     '0xd92271C20A5a3A03d8Eb6244D1c002EBed525605',
     '0xa4FF4DBb11F3186a1e96d3e8DD232E31159Ded9B',
@@ -28,16 +27,24 @@ async function main() {
   const lawyers = await (await ethers.getContractFactory("NarfexLawyers")).deploy();
   await lawyers.deployed();
   console.log("NarfexLawyers deployed to:", lawyers.address);
-  **/
   
-  const factory = await (await ethers.getContractFactory("NarfexP2pFactory")).deploy(
+  const buyFactory = await (await ethers.getContractFactory("NarfexP2pBuyFactory")).deploy(
     '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
-    '0xA097dB585AEEaEd3B5F2909503597cb8c6c05145',
-    '0x6b16719Ba47f902955278c8eF16ed97AA15234F1',
-    '0x7B8d000649eaE22b8e45c28295Cc41111d5c8f60',
+    kyc.address,
+    lawyers.address,
+    router.address,
   );
-  await factory.deployed();
-  console.log("NarfexP2pFactory deployed to:", factory.address);
+  await buyFactory.deployed();
+  console.log("NarfexP2pBuyFactory deployed to:", buyFactory.address);
+  
+  const sellFactory = await (await ethers.getContractFactory("NarfexP2pSellFactory")).deploy(
+    '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
+    kyc.address,
+    lawyers.address,
+    router.address,
+  );
+  await sellFactory.deployed();
+  console.log("NarfexP2pSellFactory deployed to:", sellFactory.address);
 }
 
 main() 

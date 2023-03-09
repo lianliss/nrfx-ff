@@ -2,9 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./NarfexP2pBuyOffer.sol";
 import "./NarfexP2pSellOffer.sol";
-import "./INarfexOracle.sol";
 import "./INarfexP2pRouter.sol";
 
 interface INarfexKYC {
@@ -28,7 +26,7 @@ interface IOffer {
 /// @title Offers factory for Narfex P2P service
 /// @author Danil Sakhinov
 /// @dev Allows to create p2p offers
-contract NarfexP2pFactory is Ownable {
+contract NarfexP2pSellFactory is Ownable {
 
     struct Offer { /// Offer getter structure
         address offerAddress;
@@ -50,10 +48,8 @@ contract NarfexP2pFactory is Ownable {
     INarfexP2pRouter public router;
     uint public tradesLimit = 2; /// Trades count per one offer in one time
 
-    mapping(address=>address[]) private _buyOffers; /// Fiat=>Offer
-    mapping(address=>address[]) private _sellOffers; /// Fiat=>Offer
-    mapping(address=>mapping(address=>address)) private _validatorBuyOffers; /// Fiat=>Validator=>Offer
-    mapping(address=>mapping(address=>address)) private _validatorSellOffers; /// Fiat=>Validator=>Offer
+    mapping(address=>address[]) private _offers; /// Fiat=>Offer
+    mapping(address=>mapping(address=>bool)) private _validatorHaveOffer; /// Fiat=>Validator=>Have
     mapping(address=>address[]) private _validatorOffers; /// Validator=>Offer
     mapping(address=>uint16) private _fees; /// Protocol fees
 
@@ -87,28 +83,13 @@ contract NarfexP2pFactory is Ownable {
     /// @notice Create Buy Offer by validator
     /// @param _fiatAddress Fiat
     /// @param _commission Validator commission with 4 digits of precision (10000 = 100%);
-    function createBuyOffer(address _fiatAddress, uint16 _commission) public {
-        require(_validatorBuyOffers[_fiatAddress][msg.sender] == address(0), "You already have this offer");
+    function create(address _fiatAddress, uint16 _commission, bytes32 _publicKey) public {
+        require(!_validatorHaveOffer[_fiatAddress][msg.sender], "You already have this offer");
         require(kyc.getCanTrade(msg.sender), "You can't trade");
-        require(INarfexOracle(router.getOracle()).getIsFiat(_fiatAddress), "Token is not fiat");
-        NarfexP2pBuyOffer offer = new NarfexP2pBuyOffer(address(this), msg.sender, _fiatAddress, _commission);
-        _buyOffers[_fiatAddress].push(address(offer));
-        _validatorBuyOffers[_fiatAddress][msg.sender] = address(offer);
-        _validatorOffers[msg.sender].push(address(offer));
-        emit CreateOffer(msg.sender, _fiatAddress, address(offer), true);
-    }
-
-    /// @notice Create Buy Offer by validator
-    /// @param _fiatAddress Fiat
-    /// @param _commission Validator commission with 4 digits of precision (10000 = 100%);
-    /// @param _publicKey Validator public key
-    function createSellOffer(address _fiatAddress, uint16 _commission, bytes32 _publicKey) public {
-        require(_validatorSellOffers[_fiatAddress][msg.sender] == address(0), "You already have this offer");
-        require(kyc.getCanTrade(msg.sender), "You can't trade");
-        require(INarfexOracle(router.getOracle()).getIsFiat(_fiatAddress), "Token is not fiat");
+        require(router.getIsFiat(_fiatAddress), "Token is not fiat");
         NarfexP2pSellOffer offer = new NarfexP2pSellOffer(address(this), msg.sender, _fiatAddress, _publicKey, _commission);
-        _sellOffers[_fiatAddress].push(address(offer));
-        _validatorSellOffers[_fiatAddress][msg.sender] = address(offer);
+        _offers[_fiatAddress].push(address(offer));
+        _validatorHaveOffer[_fiatAddress][msg.sender] = true;
         _validatorOffers[msg.sender].push(address(offer));
         emit CreateOffer(msg.sender, _fiatAddress, address(offer), false);
     }
@@ -122,22 +103,13 @@ contract NarfexP2pFactory is Ownable {
         return _getOffersData(_validatorOffers[_account], _offset, _limit);
     }
 
-    /// @notice Get all buy offers with data for single fiat
+    /// @notice Get all offers with data for single fiat
     /// @param _fiat Fiat address
     /// @param _offset Start index
     /// @param _limit Results limit. Zero for no limit
     /// @return array of Offer struct
-    function getFiatBuyOffers(address _fiat, uint _offset, uint _limit) public view returns(Offer[] memory) {
-        return _getOffersData(_buyOffers[_fiat], _offset, _limit);
-    }
-
-    /// @notice Get all sell offers with data for single fiat
-    /// @param _fiat Fiat address
-    /// @param _offset Start index
-    /// @param _limit Results limit. Zero for no limit
-    /// @return array of Offer struct
-    function getFiatSellOffers(address _fiat, uint _offset, uint _limit) public view returns(Offer[] memory) {
-        return _getOffersData(_sellOffers[_fiat], _offset, _limit);
+    function getOffers(address _fiat, uint _offset, uint _limit) public view returns(Offer[] memory) {
+        return _getOffersData(_offers[_fiat], _offset, _limit);
     }
 
     function _getOffersData(
@@ -227,15 +199,6 @@ contract NarfexP2pFactory is Ownable {
         return tradesLimit;
     }
 
-    /// @notice Get token price in ETH (or BNB for BSC and etc.)
-    /// @param _token Token address
-    /// @return Token price
-    /// @dev To estimate the gas price in fiat
-    function getETHPrice(address _token) external view returns(uint) {
-        INarfexOracle oracle = INarfexOracle(router.getOracle());
-        return oracle.getPrice(_token) * ETH_PRECISION / oracle.getPrice(WETH);
-    }
-
     /// @notice Randomly get the address of an active lawyer
     /// @return Lawyer account address
     function getLawyer() external view returns(address) {
@@ -246,6 +209,14 @@ contract NarfexP2pFactory is Ownable {
     /// @return Router address
     function getRouter() external view returns(address) {
         return address(router);
+    }
+
+    /// @notice Get token price in ETH (or BNB for BSC and etc.)
+    /// @param _token Token address
+    /// @return Token price
+    /// @dev To estimate the gas price in fiat
+    function getETHPrice(address _token) external view returns(uint) {
+        return router.getETHPrice(_token);
     }
 
     /// Admin setters

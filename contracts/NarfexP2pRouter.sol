@@ -115,4 +115,19 @@ contract NarfexP2pRouter is NarfexExchangerRouter3 {
         INarfexFiat(_fiatAddress).burnFrom(msg.sender, _fiatAmount);
         pool.increaseFeeAmount(usdcAmount);
     }
+
+    /// @notice Get token price in ETH (or BNB for BSC and etc.)
+    /// @param _token Token address
+    /// @return Token price
+    /// @dev To estimate the gas price in fiat
+    function getETHPrice(address _token) external view returns(uint) {
+        return oracle.getPrice(_token) * PRECISION / oracle.getPrice(address(WETH));
+    }
+
+    /// @notice Return is fiat value
+    /// @param _token Token address
+    /// @return Is fiat
+    function getIsFiat(address _token) external view returns(bool) {
+        return oracle.getIsFiat(_token);
+    }
 }
