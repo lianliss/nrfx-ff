@@ -8,11 +8,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// @author Danil Sakhinov
 contract NarfexToken is ERC20, Ownable {
 
-    uint16 constant PERCENT_PRECISION = 10**4; /// 10000 = 100%
-    uint256 constant AUTOBURN_LIMIT = 10**7 wei; /// TotalSupply limit above which burning works
-    uint16 private _burnPercentage = 30; /// 0.3% of burn/farming fee
-    address immutable public oldToken; /// Old NRFX address for migration
-    address public masterChef; /// Farming contract address
+    event Migrate(address indexed account, uint256 amount);
+    event MasterChefSet(address newAddress);
+    event BurnPercentageSet(uint256 percents);
+
+    uint256 constant PERCENT_PRECISION = 10**4; // 10000 = 100%
+    uint256 constant AUTOBURN_LIMIT = 10**7 wei; // TotalSupply limit above which burning works
+    uint256 private _burnPercentage = 30; // 0.3% of burn/farming fee
+    address immutable public oldToken; // Old NRFX address for migration
+    address public masterChef; // Farming contract address
 
     /// @param oldToken_ Olf NRFX address
     /// @param masterChef_ Farming contract address
@@ -20,10 +24,6 @@ contract NarfexToken is ERC20, Ownable {
         oldToken = oldToken_;
         masterChef = masterChef_;
     }
-
-    event Migrate(address account, uint256 amount);
-    event MasterChefSet(address newAddress);
-    event BurnPercentageSet(uint16 percents);
 
     /// @notice Migration from an old token to a new one
     /// @dev Withdraw all account funds from the old token and mint on the new one
@@ -44,12 +44,12 @@ contract NarfexToken is ERC20, Ownable {
     function _transferWithFee(address spender, address receiver, uint256 amount) internal {
         require(balanceOf(spender) >= amount, "Insufficient balance");
 
-        /// Subtract fee and transfer
+        // Subtract fee and transfer
         uint256 fee = amount * _burnPercentage / PERCENT_PRECISION;
         uint256 transferAmount = amount - fee;
         _transfer(spender, receiver, transferAmount);
 
-        /// Burn fee or transfer fee to a farming contract
+        // Burn fee or transfer fee to a farming contract
         if (totalSupply() >= AUTOBURN_LIMIT) {
             _burn(spender, fee);
         } else {
@@ -86,7 +86,7 @@ contract NarfexToken is ERC20, Ownable {
 
     /// @notice Set fee percent
     /// @param percents Fee percent with 4 digits of precision
-    function setBurnPercentage(uint16 percents) public onlyOwner {
+    function setBurnPercentage(uint256 percents) public onlyOwner {
         require(percents < 10000, "Fee can't be higher than 100%");
         _burnPercentage = percents;
         emit BurnPercentageSet(percents);
