@@ -62,9 +62,15 @@ library PancakeLibrary {
             factory = hex'B7926C0430Afb07AA7DEfDE6DA862aE0Bde767bc';
             initCodeHash = hex'ecba335299a6693cb2ebc4782e74669b84290b6378ea3a3873c7231a8d7d1074';
         }
-        if (block.chainid == 137 || block.chainid == 42161) { /// Polygon or Arbitrum
+        if (block.chainid == 137
+        || block.chainid == 42161
+        || block.chainid == 80001) { /// Polygon or Arbitrum
             factory = hex'c35DADB65012eC5796536bD9864eD8773aBc74C4';
             initCodeHash = hex'e18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303';
+        }
+        if (block.chainid == 324) { /// zkSync Era
+            factory = hex'40be1cBa6C5B47cDF9da7f963B6F761F4C60627D';
+            initCodeHash = hex'95d5c05820d58f1c8cc736b47fe10a29ddcd2cf73a0d842e8537b9fe510fc618';
         }
         pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
@@ -100,6 +106,9 @@ library PancakeLibrary {
         if (block.chainid == 97) {
             poolCommission = 9980; /// BSC testnet commission
         }
+        if (block.chainid == 324) {
+            poolCommission = 9990; /// zkSync commission
+        }
         uint amountInWithFee = amountIn * poolCommission;
         uint numerator = amountInWithFee * reserveOut;
         uint denominator = reserveIn * 10000 + amountInWithFee;
@@ -116,6 +125,9 @@ library PancakeLibrary {
         }
         if (block.chainid == 97) {
             poolCommission = 9980; /// BSC testnet commission
+        }
+        if (block.chainid == 324) {
+            poolCommission = 9990; /// zkSync commission
         }
         uint numerator = reserveIn * amountOut * 10000;
         uint denominator = (reserveOut - amountOut) * poolCommission;

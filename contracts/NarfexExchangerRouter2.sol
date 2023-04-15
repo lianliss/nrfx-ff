@@ -97,7 +97,7 @@ contract NarfexExchangerRouter2 is Ownable, ReentrancyGuard {
         USDT = IERC20(_usdtAddress);
         WBNB = IWBNB(_wbnbAddress);
         pool = INarfexExchangerPool(_poolAddress);
-        if (block.chainid == 56 || block.chainid == 97) {
+        if (block.chainid == 56 || block.chainid == 97 || block.chainid == 80001) {
             USDT_PRECISION = 10**18;
         }
     }

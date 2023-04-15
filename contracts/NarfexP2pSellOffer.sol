@@ -38,7 +38,7 @@ contract NarfexP2pSellOffer {
 
     address[] private _currentClients;
     bool private _isActive;
-    bool[7][24] private _activeHours;
+    bool[24][7] private _activeHours;
     mapping(address => Trade) private _trades;
     mapping(address => bool) private _blacklist;
 
@@ -182,13 +182,13 @@ contract NarfexP2pSellOffer {
 
     /// @notice Returns the offer schedule
     /// @return Activity hours
-    function getSchedule() public view returns(bool[7][24] memory) {
+    function getSchedule() public view returns(bool[24][7] memory) {
         return _activeHours;
     }
 
     /// @notice Set new schedule
     /// @param _schedule [weekDay][hour] => isActive
-    function setSchedule(bool[7][24] calldata _schedule) public onlyOwner {
+    function setSchedule(bool[24][7] calldata _schedule) public onlyOwner {
         _activeHours = _schedule;
         emit ScheduleUpdate();
     }
