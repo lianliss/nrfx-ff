@@ -30,8 +30,8 @@ contract NarfexToken is ERC20, Ownable {
         v2Token = v2Token_;
         masterChef = masterChef_;
 
-        runMigration();
         emit MasterChefSet(masterChef_);
+        emit MigrationRun();
     }
 
     /// @notice Migration from an old token to a new one

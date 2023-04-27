@@ -9,7 +9,7 @@ const networks = {
     eth: {
         url: "https://rpc.ankr.com/eth/6c2f34a42715fa4c50762b0069a7a658618c752709b7db32f7bfe442741117eb",
         chainId: 1,
-        gasPrice: 25000000000,
+        gasPrice: 36000000000,
         accounts: [accounts.bsc.privateKey]
     },
     bsc: {
@@ -56,6 +56,6 @@ module.exports = {
     },
     networks: networks,
     etherscan: {
-        apiKey: accounts.bscscan
+        apiKey: accounts.ether
     }
 };
