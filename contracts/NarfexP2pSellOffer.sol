@@ -69,10 +69,12 @@ contract NarfexP2pSellOffer {
         bytes32 _ownerPublicKey,
         uint16 _commission
     ) {
-        owner = _owner;
-        ownerPublicKey = _ownerPublicKey;
         fiat = _fiatAddress;
         factory = INarfexP2pFactory(_factory);
+        require (factory.getFiatFee(fiat) + _commission < PERCENT_PRECISION, "Commission too high");
+        
+        owner = _owner;
+        ownerPublicKey = _ownerPublicKey;
         _isActive = true;
         /// Fill all hours as active
         unchecked {
@@ -83,7 +85,7 @@ contract NarfexP2pSellOffer {
             }
         }
         isKYCRequired = true;
-        setCommission(_commission);
+        commission = _commission;
         emit KYCRequired();
         emit SetCommission(_commission);
         emit Enable();
