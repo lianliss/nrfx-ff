@@ -41,19 +41,21 @@ contract NarfexP2pBuyOffer {
     mapping(address => Trade) private _trades;
     mapping(address => bool) private _blacklist;
 
-    event Blacklisted(address _client);
-    event Unblacklisted(address _client);
-    event Disable();
-    event Enable();
-    event ScheduleUpdate();
-    event AddBankAccount(uint _index, string _jsonData);
-    event ClearBankAccount(uint _index);
-    event KYCRequired();
-    event KYCUnrequired();
-    event SetCommission(uint _percents);
-    event CreateTrade(address _client, uint moneyAmount, uint fiatAmount);
-    event Withdraw(uint _amount);
-    event SetLawyer(address _client, address _offer, address _lawyer);
+    event P2pOfferBlacklisted(address _client);
+    event P2pOfferUnblacklisted(address _client);
+    event P2pOfferDisable();
+    event P2pOfferEnable();
+    event P2pOfferScheduleUpdate();
+    event P2pOfferAddBankAccount(uint _index, string _jsonData);
+    event P2pOfferClearBankAccount(uint _index);
+    event P2pOfferKYCRequired();
+    event P2pOfferKYCUnrequired();
+    event P2pOfferSetCommission(uint _percents);
+    event P2pCreateTrade(address _client, uint moneyAmount, uint fiatAmount);
+    event P2pOfferWithdraw(uint _amount);
+    event P2pSetLawyer(address _client, address _offer, address _lawyer);
+    event P2pConfirmTrade(address _client, address _lawyer);
+    event P2pCancelTrade(address _client, address _lawyer);
 
     /// @param _factory Factory address
     /// @param _owner Validator as offer owner
@@ -81,9 +83,9 @@ contract NarfexP2pBuyOffer {
         }
         isKYCRequired = true;
         commission = _commission;
-        emit KYCRequired();
-        emit SetCommission(_commission);
-        emit Enable();
+        emit P2pOfferKYCRequired();
+        emit P2pOfferSetCommission(_commission);
+        emit P2pOfferEnable();
     }
 
     modifier onlyOwner() {
@@ -151,7 +153,7 @@ contract NarfexP2pBuyOffer {
     function setCommission(uint16 _percents) public onlyOwner {
         require (factory.getFiatFee(fiat) + _percents < PERCENT_PRECISION, "Commission too high");
         commission = _percents;
-        emit SetCommission(_percents);
+        emit P2pOfferSetCommission(_percents);
     }
 
     /// @notice Get offer data in one request
@@ -210,7 +212,7 @@ contract NarfexP2pBuyOffer {
     /// @param _schedule [weekDay][hour] => isActive
     function setSchedule(bool[24][7] calldata _schedule) public onlyOwner {
         _activeHours = _schedule;
-        emit ScheduleUpdate();
+        emit P2pOfferScheduleUpdate();
     }
 
     /// @notice Get is client blacklisted by Offer or Protocol
@@ -225,7 +227,7 @@ contract NarfexP2pBuyOffer {
     function addToBlacklist(address _client) public onlyOwner {
         require(!_blacklist[_client], "Client already in blacklist");
         _blacklist[_client] = true;
-        emit Blacklisted(_client);
+        emit P2pOfferBlacklisted(_client);
     }
 
     /// @notice Remove client from offer blacklist
@@ -233,7 +235,7 @@ contract NarfexP2pBuyOffer {
     function removeFromBlacklist(address _client) public onlyOwner {
         require(_blacklist[_client], "Client is not in your blacklist");
         _blacklist[_client] = false;
-        emit Unblacklisted(_client);
+        emit P2pOfferUnblacklisted(_client);
     }
 
     /// @notice Set the offer is permanently active
@@ -242,9 +244,9 @@ contract NarfexP2pBuyOffer {
         require(_isActive != _newState, "Already seted");
         _isActive = _newState;
         if (_newState) {
-            emit Enable();
+            emit P2pOfferEnable();
         } else {
-            emit Disable();
+            emit P2pOfferDisable();
         }
     }
 
@@ -254,9 +256,9 @@ contract NarfexP2pBuyOffer {
         require(isKYCRequired != _newState, "Already seted");
         isKYCRequired = _newState;
         if (_newState) {
-            emit KYCRequired();
+            emit P2pOfferKYCRequired();
         } else {
-            emit KYCUnrequired();
+            emit P2pOfferKYCUnrequired();
         }
     }
 
@@ -264,13 +266,14 @@ contract NarfexP2pBuyOffer {
     /// @param _jsonData JSON encoded object
     function addBankAccount(string calldata _jsonData) public onlyOwner {
         _bankAccounts.push(_jsonData);
-        emit AddBankAccount(_bankAccounts.length - 1, _jsonData);
+        emit P2pOfferAddBankAccount(_bankAccounts.length - 1, _jsonData);
     }
 
     /// @notice Clead bank account data
     /// @param _index Account index
     function clearBankAccount(uint _index) public onlyOwner {
         _bankAccounts[_index] = '';
+        emit P2pOfferClearBankAccount(_index);
     }
 
     /// @notice Returns validator bank accounts
@@ -305,7 +308,7 @@ contract NarfexP2pBuyOffer {
     function withdraw(uint _amount) public onlyOwner {
         require(_amount <= getAvailableBalance(), "Not enouth free balance");
         SafeERC20.safeTransferFrom(IERC20(fiat), address(this), msg.sender, _amount);
-        emit Withdraw(_amount);
+        emit P2pOfferWithdraw(_amount);
     }
 
     /// @notice Add random lawyer to the trade
@@ -324,7 +327,7 @@ contract NarfexP2pBuyOffer {
             "You don't have permission to this trade"
             );
         trade.lawyer = factory.getLawyer();
-        emit SetLawyer(_client, address(this), trade.lawyer);
+        emit P2pSetLawyer(_client, address(this), trade.lawyer);
     }
 
     /// @notice Creade a new trade
@@ -363,7 +366,7 @@ contract NarfexP2pBuyOffer {
             chatRoom: chatRoom
         });
         _currentClients.push(msg.sender);
-        emit CreateTrade(msg.sender, moneyAmount, fiatAmount);
+        emit P2pCreateTrade(msg.sender, moneyAmount, fiatAmount);
     }
 
     /// @notice Create a new trade by the validator when requested by the client
@@ -416,7 +419,7 @@ contract NarfexP2pBuyOffer {
             chatRoom: chatRoom
         });
         _currentClients.push(clientAddress);
-        emit CreateTrade(clientAddress, moneyAmount, fiatAmount);
+        emit P2pCreateTrade(clientAddress, moneyAmount, fiatAmount);
         
         /// Add a lawyer right away
         setLawyer(clientAddress);
@@ -457,6 +460,9 @@ contract NarfexP2pBuyOffer {
                 gasFiatDeduction = trade.fiatLocked;
             }
             SafeERC20.safeTransferFrom(IERC20(fiat), address(this), trade.lawyer, gasFiatDeduction);
+            emit P2pCancelTrade(_client, trade.lawyer);
+        } else {
+            emit P2pCancelTrade(_client, address(0));
         }
 
         trade.status = 0;
@@ -491,6 +497,9 @@ contract NarfexP2pBuyOffer {
         if (msg.sender == trade.lawyer) {
             /// If confirmation called by lawyer send fiat equivalent of gas to lawyer
             SafeERC20.safeTransferFrom(IERC20(fiat), address(this), trade.lawyer, gasFiatDeduction);
+            emit P2pConfirmTrade(_client, trade.lawyer);
+        } else {
+            emit P2pConfirmTrade(_client, address(0));
         }
 
         if (trade.status == 2) {
