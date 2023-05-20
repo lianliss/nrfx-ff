@@ -47,6 +47,7 @@ async function main() {
   );
   await sellFactory.deployed();
   console.log("NarfexP2pSellFactory deployed to:", sellFactory.address);
+  console.log("TXs", buyFactory.deployTransaction.hash, sellFactory.deployTransaction.hash);
 }
 
 main() 

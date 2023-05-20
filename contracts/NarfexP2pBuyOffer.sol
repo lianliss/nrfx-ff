@@ -37,25 +37,26 @@ contract NarfexP2pBuyOffer {
     address[] private _currentClients;
     string[] private _bankAccounts;
     bool private _isActive;
-    bool[24][7] private _activeHours;
+    bytes21 private _activeHours; // Active hours of week. 21 bytes = 24 x 7 / 8
     mapping(address => Trade) private _trades;
     mapping(address => bool) private _blacklist;
 
-    event P2pOfferBlacklisted(address _client);
-    event P2pOfferUnblacklisted(address _client);
+    event P2pOfferBlacklisted(address indexed _client);
+    event P2pOfferUnblacklisted(address indexed _client);
     event P2pOfferDisable();
     event P2pOfferEnable();
-    event P2pOfferScheduleUpdate();
+    event P2pOfferScheduleUpdate(bytes21 _schedule);
     event P2pOfferAddBankAccount(uint _index, string _jsonData);
     event P2pOfferClearBankAccount(uint _index);
     event P2pOfferKYCRequired();
     event P2pOfferKYCUnrequired();
     event P2pOfferSetCommission(uint _percents);
-    event P2pCreateTrade(address _client, uint moneyAmount, uint fiatAmount);
+    event P2pCreateTrade(address indexed _client, uint moneyAmount, uint fiatAmount);
     event P2pOfferWithdraw(uint _amount);
-    event P2pSetLawyer(address _client, address _offer, address _lawyer);
-    event P2pConfirmTrade(address _client, address _lawyer);
-    event P2pCancelTrade(address _client, address _lawyer);
+    event P2pSetLawyer(address indexed _client, address _offer, address indexed _lawyer);
+    event P2pConfirmTrade(address indexed _client, address indexed _lawyer);
+    event P2pCancelTrade(address indexed _client, address indexed _lawyer);
+    event P2pSetTradeAmounts(uint _minTradeAmount, uint _maxTradeAmount);
 
     /// @param _factory Factory address
     /// @param _owner Validator as offer owner
@@ -65,7 +66,9 @@ contract NarfexP2pBuyOffer {
         address _factory,
         address _owner,
         address _fiatAddress,
-        uint16 _commission
+        uint16 _commission,
+        uint _minTradeAmount,
+        uint _maxTradeAmount
     ) {
         fiat = _fiatAddress;
         factory = INarfexP2pFactory(_factory);
@@ -73,19 +76,12 @@ contract NarfexP2pBuyOffer {
 
         owner = _owner;
         _isActive = true;
-        /// Fill all hours as active
-        unchecked {
-            for (uint8 w; w < 7; w++) {
-                for (uint8 h; h < 24; h++) {
-                    _activeHours[w][h] = true;
-                }
-            }
-        }
+        // Fill all hours as active
+        _activeHours = ~bytes21(0);
         isKYCRequired = true;
         commission = _commission;
-        emit P2pOfferKYCRequired();
-        emit P2pOfferSetCommission(_commission);
-        emit P2pOfferEnable();
+        minTradeAmount = _minTradeAmount;
+        maxTradeAmount = _maxTradeAmount;
     }
 
     modifier onlyOwner() {
@@ -101,7 +97,9 @@ contract NarfexP2pBuyOffer {
         if (factory.getCanTrade(owner)) return false;
         uint8 weekDay = uint8((block.timestamp / DAY + 4) % 7);
         uint8 hour = uint8((block.timestamp / 60 / 60) % 24);
-        return _activeHours[weekDay][hour];
+        uint bitIndex = 7 * weekDay + hour;
+        bytes21 hourBit = ~(~bytes21(0) >> 1 << 1) << bitIndex;
+        return _activeHours & hourBit > 0;
     }
 
     /// @notice Get current fiat balance in this offer contract
@@ -156,6 +154,15 @@ contract NarfexP2pBuyOffer {
         emit P2pOfferSetCommission(_percents);
     }
 
+    /// @notice Sets trade minumum and maximum amounts
+    /// @param _minTradeAmount Minimal trade amount
+    /// @param _maxTradeAmount Maximal trade amount
+    function setTradeAmounts(uint _minTradeAmount, uint _maxTradeAmount) public onlyOwner {
+        minTradeAmount = _minTradeAmount;
+        maxTradeAmount = _maxTradeAmount;
+        emit P2pSetTradeAmounts(_minTradeAmount, _maxTradeAmount);
+    }
+
     /// @notice Get offer data in one request
     /// @return Offer address
     /// @return Fiat address
@@ -204,15 +211,15 @@ contract NarfexP2pBuyOffer {
 
     /// @notice Returns the offer schedule
     /// @return Activity hours
-    function getSchedule() public view returns(bool[24][7] memory) {
+    function getSchedule() public view returns(bytes21) {
         return _activeHours;
     }
 
     /// @notice Set new schedule
-    /// @param _schedule [weekDay][hour] => isActive
-    function setSchedule(bool[24][7] calldata _schedule) public onlyOwner {
+    /// @param _schedule Schedule bytes
+    function setSchedule(bytes21 _schedule) public onlyOwner {
         _activeHours = _schedule;
-        emit P2pOfferScheduleUpdate();
+        emit P2pOfferScheduleUpdate(_schedule);
     }
 
     /// @notice Get is client blacklisted by Offer or Protocol
@@ -512,5 +519,22 @@ contract NarfexP2pBuyOffer {
 
         trade.status = 0;
         removeClientFromCurrent(_client);
+    }
+
+    /// @notice Update all settings
+    /// @param _commission New commission
+    /// @param _minTradeAmount New minimal trade amount
+    /// @param _maxTradeAmount New maximum trade amount
+    /// @param _schedule New active hours packed to bits
+    function setSettings(uint16 _commission, uint _minTradeAmount, uint _maxTradeAmount, bytes21 _schedule) public onlyOwner {
+        if (_commission != commission) {
+            setCommission(_commission);
+        }
+        if (_minTradeAmount != minTradeAmount || _maxTradeAmount != maxTradeAmount) {
+            setTradeAmounts(_minTradeAmount, _maxTradeAmount);
+        }
+        if (_schedule != _activeHours) {
+            setSchedule(_schedule);
+        }
     }
 }

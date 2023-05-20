@@ -83,11 +83,11 @@ contract NarfexP2pSellFactory is Ownable {
     /// @notice Create Buy Offer by validator
     /// @param _fiatAddress Fiat
     /// @param _commission Validator commission with 4 digits of precision (10000 = 100%);
-    function create(address _fiatAddress, uint16 _commission, bytes32 _publicKey) public {
+    function create(address _fiatAddress, uint16 _commission, uint _minTradeAmount, uint _maxTradeAmount, bytes32 _publicKey) public {
         require(!_validatorHaveOffer[_fiatAddress][msg.sender], "You already have this offer");
         require(kyc.getCanTrade(msg.sender), "You can't trade");
         require(router.getIsFiat(_fiatAddress), "Token is not fiat");
-        NarfexP2pSellOffer offer = new NarfexP2pSellOffer(address(this), msg.sender, _fiatAddress, _publicKey, _commission);
+        NarfexP2pSellOffer offer = new NarfexP2pSellOffer(address(this), msg.sender, _fiatAddress, _publicKey, _commission, _minTradeAmount, _maxTradeAmount);
         _offers[_fiatAddress].push(address(offer));
         _validatorHaveOffer[_fiatAddress][msg.sender] = true;
         _validatorOffers[msg.sender].push(address(offer));
