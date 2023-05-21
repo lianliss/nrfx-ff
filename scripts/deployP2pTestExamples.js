@@ -8,6 +8,8 @@ async function main() {
     '0xa4FF4DBb11F3186a1e96d3e8DD232E31159Ded9B',
     '0x93e9fefdb37431882D1A27bB794E73a191ebD945',
     100,
+    0,
+    0,
   );
   await buy.deployed();
   console.log("NarfexP2pBuyOffer deployed to:", buy.address);
@@ -19,6 +21,8 @@ async function main() {
     '0x93e9fefdb37431882D1A27bB794E73a191ebD945',
     '0x7177650000000000000000000000000000000000000000000000000000000000',
     100,
+    0,
+    0,
   );
   await sell.deployed();
   console.log("NarfexP2pSellOffer deployed to:", sell.address);

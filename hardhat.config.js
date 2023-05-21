@@ -39,7 +39,7 @@ const networks = {
     test: {
       url: "https://bsc-testnet.web3api.com/v1/KBR2FY9IJ2IXESQMQ45X76BNWDAW2TT3Z3",
       chainId: 97,
-      gasPrice: 20000000000,
+      gasPrice: 11000000000,
       accounts: [accounts.bsc.privateKey]
     },
 };

@@ -96,7 +96,7 @@ contract NarfexP2pSellOffer {
     /// @dev Checks permanent activity, allowance by Protocol and schedule
     function getIsActive() public view returns(bool isActive) {
         if (!_isActive) return false;
-        if (factory.getCanTrade(owner)) return false;
+        if (!factory.getCanTrade(owner)) return false;
         uint8 weekDay = uint8((block.timestamp / DAY + 4) % 7);
         uint8 hour = uint8((block.timestamp / 60 / 60) % 24);
         uint bitIndex = 7 * weekDay + hour;
