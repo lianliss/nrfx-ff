@@ -332,14 +332,14 @@ contract NarfexP2pSellOffer {
         emit P2pCreateTrade(msg.sender, moneyAmount, fiatAmount);
     }
 
-    function removeClientFromCurrent(address _client) private {
+    function removeClientFromCurrent(address _client) public {
         unchecked {
             uint j;
-            for (uint i; i < _currentClients.length - 1; i++) {
+            for (uint i; i < _currentClients.length; i++) {
                 if (_currentClients[i] == _client) {
                     j++;
                 }
-                if (j > 0) {
+                if (i < _currentClients.length - 1 && j > 0) {
                     _currentClients[i] = _currentClients[i + 1];
                 }
             }
